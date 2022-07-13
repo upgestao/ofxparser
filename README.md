@@ -1,7 +1,7 @@
 OFX Parser
 =================
 
-Este repositório é um fork. Feito para correções pois o repositório principal foi descontinuado.
+Este repositório é um fork. Feito para correções pois o repositório principal foi descontinuado. UpGestão
 =================
 
 OFX Parser is a PHP library designed to parse an OFX file downloaded from a financial institution into simple PHP objects.
