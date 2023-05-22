@@ -185,11 +185,8 @@ class Ofx
         $bankAccount->accountNumber = $statementResponse->BANKACCTFROM->ACCTID;
         $bankAccount->routingNumber = $statementResponse->BANKACCTFROM->BANKID;
         $bankAccount->accountType = $statementResponse->BANKACCTFROM->ACCTTYPE;
-        $bankAccount->balance = $statementResponse->LEDGERBAL->BALAMT;
-        $bankAccount->balanceDate = Utils::createDateTimeFromStr(
-            $statementResponse->LEDGERBAL->DTASOF,
-            true
-        );
+       $bankAccount->balance = isset($statementResponse->LEDGERBAL->BALAMT) ? (string)$statementResponse->LEDGERBAL->BALAMT : '';
+        $bankAccount->balanceDate = isset($statementResponse->LEDGERBAL->DTASOF) ? $this->createDateTimeFromStr($statementResponse->LEDGERBAL->DTASOF, true) : null;
 
         $bankAccount->statement = new Statement();
         $bankAccount->statement->currency = $statementResponse->CURDEF;
@@ -227,8 +224,8 @@ class Ofx
         $creditAccount->accountNumber = $xml->CCSTMTRS->$nodeName->ACCTID;
         $creditAccount->routingNumber = $xml->CCSTMTRS->$nodeName->BANKID;
         $creditAccount->accountType = $xml->CCSTMTRS->$nodeName->ACCTTYPE;
-        $creditAccount->balance = $xml->CCSTMTRS->LEDGERBAL->BALAMT;
-        $creditAccount->balanceDate = Utils::createDateTimeFromStr($xml->CCSTMTRS->LEDGERBAL->DTASOF, true);
+        $creditAccount->balance = isset($xml->CCSTMTRS->LEDGERBAL->BALAMT) ? (string)$xml->CCSTMTRS->LEDGERBAL->BALAMT : '';
+        $creditAccount->balanceDate = isset($xml->CCSTMTRS->LEDGERBAL->DTASOF) ? $this->createDateTimeFromStr($xml->CCSTMTRS->LEDGERBAL->DTASOF, true) : null;
 
         $creditAccount->statement = new Statement();
         $creditAccount->statement->currency = $xml->CCSTMTRS->CURDEF;
@@ -278,5 +275,75 @@ class Ofx
         $status->message = $xml->MESSAGE;
 
         return $status;
+    }
+
+    /**
+     * Create a DateTime object from a valid OFX date format
+     *
+     * Supports:
+     * YYYYMMDDHHMMSS.XXX[gmt offset:tz name]
+     * YYYYMMDDHHMMSS.XXX
+     * YYYYMMDDHHMMSS
+     * YYYYMMDD
+     *
+     * @param  string $dateString
+     * @param  boolean $ignoreErrors
+     * @return \DateTime $dateString
+     * @throws \Exception
+     */
+    private function createDateTimeFromStr($dateString, $ignoreErrors = false)
+    {
+        $regex = '/'
+            . "(\d{4})(\d{2})(\d{2})?"     // YYYYMMDD             1,2,3
+            . "(?:(\d{2})(\d{2})(\d{2}))?" // HHMMSS   - optional  4,5,6
+            . "(?:\.(\d{3}))?"             // .XXX     - optional  7
+            . "(?:\[-?\d+\:\w{3}\])?"      // [-n:TZ]  - optional  8,9
+            . '/';
+
+        if (preg_match($regex, $dateString, $matches)) {
+            $year = (int)$matches[1];
+            $month = (int)$matches[2];
+            $day = (int)$matches[3];
+            $hour = isset($matches[4]) ? $matches[4] : 0;
+            $min = isset($matches[5]) ? $matches[5] : 0;
+            $sec = isset($matches[6]) ? $matches[6] : 0;
+
+            $format = $year . '-' . $month . '-' . $day . ' ' . $hour . ':' . $min . ':' . $sec;
+
+            try {
+                return new \DateTime($format);
+            } catch (\Exception $e) {
+                if ($ignoreErrors) {
+                    return null;
+                }
+
+                throw $e;
+            }
+        }
+
+        throw new \RuntimeException('Failed to initialize DateTime for string: ' . $dateString);
+    }
+
+    /**
+     * Create a formatted number in Float according to different locale options
+     *
+     * Supports:
+     * 000,00 and -000,00
+     * 0.000,00 and -0.000,00
+     * 0,000.00 and -0,000.00
+     * 000.00 and 000.00
+     *
+     * @param  string $amountString
+     * @return float
+     */
+    private function createAmountFromStr($amountString)
+    {
+        $amountString = trim($amountString);
+
+        if (preg_match('/^(?<signal>[-\+]?)(?<integer>.*)(?<separator>[\.,])(?<decimals>[\d]+)$/', $amountString, $matches) === 1) {
+            $amountString = $matches['signal'] . preg_replace('/[^\d]+/', '', $matches['integer']) . '.' . $matches['decimals'];
+        }
+
+        return (float)$amountString;
     }
 }
