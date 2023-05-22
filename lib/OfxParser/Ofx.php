@@ -168,11 +168,8 @@ class Ofx
         $bankAccount->accountNumber = $statementResponse->BANKACCTFROM->ACCTID;
         $bankAccount->routingNumber = $statementResponse->BANKACCTFROM->BANKID;
         $bankAccount->accountType = $statementResponse->BANKACCTFROM->ACCTTYPE;
-        $bankAccount->balance = $statementResponse->LEDGERBAL->BALAMT;
-        $bankAccount->balanceDate = $this->createDateTimeFromStr(
-            $statementResponse->LEDGERBAL->DTASOF,
-            true
-        );
+       $bankAccount->balance = isset($statementResponse->LEDGERBAL->BALAMT) ? (string)$statementResponse->LEDGERBAL->BALAMT : '';
+        $bankAccount->balanceDate = isset($statementResponse->LEDGERBAL->DTASOF) ? $this->createDateTimeFromStr($statementResponse->LEDGERBAL->DTASOF, true) : null;
 
         $bankAccount->statement = new Statement();
         $bankAccount->statement->currency = $statementResponse->CURDEF;
@@ -210,8 +207,8 @@ class Ofx
         $creditAccount->accountNumber = $xml->CCSTMTRS->$nodeName->ACCTID;
         $creditAccount->routingNumber = $xml->CCSTMTRS->$nodeName->BANKID;
         $creditAccount->accountType = $xml->CCSTMTRS->$nodeName->ACCTTYPE;
-        $creditAccount->balance = $xml->CCSTMTRS->LEDGERBAL->BALAMT;
-        $creditAccount->balanceDate = $this->createDateTimeFromStr($xml->CCSTMTRS->LEDGERBAL->DTASOF, true);
+        $creditAccount->balance = isset($xml->CCSTMTRS->LEDGERBAL->BALAMT) ? (string)$xml->CCSTMTRS->LEDGERBAL->BALAMT : '';
+        $creditAccount->balanceDate = isset($xml->CCSTMTRS->LEDGERBAL->DTASOF) ? $this->createDateTimeFromStr($xml->CCSTMTRS->LEDGERBAL->DTASOF, true) : null;
 
         $creditAccount->statement = new Statement();
         $creditAccount->statement->currency = $xml->CCSTMTRS->CURDEF;
@@ -283,7 +280,7 @@ class Ofx
             . "(\d{4})(\d{2})(\d{2})?"     // YYYYMMDD             1,2,3
             . "(?:(\d{2})(\d{2})(\d{2}))?" // HHMMSS   - optional  4,5,6
             . "(?:\.(\d{3}))?"             // .XXX     - optional  7
-            . "(?:\[(-?\d+)\:(\w{3}\]))?"  // [-n:TZ]  - optional  8,9
+            . "(?:\[-?\d+\:\w{3}\])?"      // [-n:TZ]  - optional  8,9
             . '/';
 
         if (preg_match($regex, $dateString, $matches)) {
