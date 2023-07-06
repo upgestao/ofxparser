@@ -61,6 +61,11 @@ class Ofx
      */
     public function __construct(SimpleXMLElement $xml)
     {
+
+        if (!property_exists($xml, 'SIGNONMSGSRSV1') || !property_exists($xml->SIGNONMSGSRSV1, 'SONRS')) {
+            $xml = self::createTags($xml);
+        }
+
         $this->signOn = $this->buildSignOn($xml->SIGNONMSGSRSV1->SONRS);
         $this->signupAccountInfo = $this->buildAccountInfo($xml->SIGNUPMSGSRSV1->ACCTINFOTRNRS);
 
@@ -75,6 +80,63 @@ class Ofx
             $this->bankAccount = $this->bankAccounts[0];
         }
     }
+
+        /**
+     * @return Ofx New tag creation enchancement
+     */
+    public function createTags( $xml) {
+
+            if(!property_exists($xml, 'SIGNONMSGSRSV1')) {
+
+                $newXml = new SimpleXMLElement('<root/>');
+        
+                $signonmsgsrsv1 = $newXml->addChild('SIGNONMSGSRSV1');
+                $signonmsgsrsv1->addChild('SONRS');
+            
+                foreach ($xml->children() as $child) {
+                    $newChild = $newXml->addChild($child->getName(), (string) $child);
+                    foreach ($child->attributes() as $attrKey => $attrValue) {
+                        $newChild->addAttribute($attrKey, $attrValue);
+                    }
+                    self::copyChildren($child, $newChild);
+                }
+            
+                $xml = $newXml;
+
+            }else if(!property_exists($xml->SIGNONMSGSRSV1, 'SONRS')) {
+
+                $newXml = new SimpleXMLElement('<root/>');
+    
+                foreach ($xml->children() as $child) {
+                    $newChild = $newXml->addChild($child->getName(), (string) $child);
+                    foreach ($child->attributes() as $attrKey => $attrValue) {
+                        $newChild->addAttribute($attrKey, $attrValue);
+                    }
+                    if ($child->getName() === 'SIGNONMSGSRSV1') {
+                        $sonrs = $newChild->addChild('SONRS');
+                    }
+            
+                    self::copyChildren($child, $newChild);
+                }
+
+                $xml = $newXml;
+            }
+
+        return $xml;
+    }
+
+       /**
+     * Copy and return the new tag
+     */
+   public function copyChildren($from, $to) {
+    foreach ($from->children() as $child) {
+        $newChild = $to->addChild($child->getName(), (string) $child);
+        foreach ($child->attributes() as $attrKey => $attrValue) {
+            $newChild->addAttribute($attrKey, $attrValue);
+        }
+        self::copyChildren($child, $newChild);
+    }
+}
 
     /**
      * Get the transactions that have been processed
