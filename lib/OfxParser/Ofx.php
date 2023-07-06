@@ -85,20 +85,42 @@ class Ofx
      * @return Ofx New tag creation enchancement
      */
     public function createTags( $xml) {
-        $newXml = new SimpleXMLElement('<root/>');
+
+            if(!property_exists($xml, 'SIGNONMSGSRSV1')) {
+
+                $newXml = new SimpleXMLElement('<root/>');
         
-        $signonmsgsrsv1 = $newXml->addChild('SIGNONMSGSRSV1');
-        $signonmsgsrsv1->addChild('SONRS');
+                $signonmsgsrsv1 = $newXml->addChild('SIGNONMSGSRSV1');
+                $signonmsgsrsv1->addChild('SONRS');
+            
+                foreach ($xml->children() as $child) {
+                    $newChild = $newXml->addChild($child->getName(), (string) $child);
+                    foreach ($child->attributes() as $attrKey => $attrValue) {
+                        $newChild->addAttribute($attrKey, $attrValue);
+                    }
+                    self::copyChildren($child, $newChild);
+                }
+            
+                $xml = $newXml;
+
+            }else if(!property_exists($xml->SIGNONMSGSRSV1, 'SONRS')) {
+
+                $newXml = new SimpleXMLElement('<root/>');
     
-        foreach ($xml->children() as $child) {
-            $newChild = $newXml->addChild($child->getName(), (string) $child);
-            foreach ($child->attributes() as $attrKey => $attrValue) {
-                $newChild->addAttribute($attrKey, $attrValue);
+                foreach ($xml->children() as $child) {
+                    $newChild = $newXml->addChild($child->getName(), (string) $child);
+                    foreach ($child->attributes() as $attrKey => $attrValue) {
+                        $newChild->addAttribute($attrKey, $attrValue);
+                    }
+                    if ($child->getName() === 'SIGNONMSGSRSV1') {
+                        $sonrs = $newChild->addChild('SONRS');
+                    }
+            
+                    self::copyChildren($child, $newChild);
+                }
+
+                $xml = $newXml;
             }
-            self::copyChildren($child, $newChild);
-        }
-    
-        $xml = $newXml;
 
         return $xml;
     }
