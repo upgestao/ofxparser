@@ -188,7 +188,7 @@ class Parser
         $tags = [];
 
         foreach ($lines as $i => &$line) {
-            $line = trim($this->closeUnclosedXmlTags($line)) . "\n";
+           // $line = trim($this->closeUnclosedXmlTags($line)) . "\n";
 
             // Matches tags like <SOMETHING> or </SOMETHING>
             if (!preg_match("/^<(\/?[A-Za-z0-9.]+)>$/", trim($line), $matches)) {
