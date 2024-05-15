@@ -44,9 +44,14 @@ class Utils
             . '/';
 
         if (preg_match($regex, $dateString, $matches)) {
+           
             $year = (int)$matches[1];
             $month = (int)$matches[2];
             $day = (int)$matches[3];
+            if ($day >31) {
+                $correctDate = $matches[3][0];
+                $day =(int)$correctDate;
+            }
             $hour = isset($matches[4]) ? $matches[4] : 0;
             $min = isset($matches[5]) ? $matches[5] : 0;
             $sec = isset($matches[6]) ? $matches[6] : 0;
